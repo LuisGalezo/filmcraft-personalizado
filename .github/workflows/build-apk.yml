@@ -1,5 +1,5 @@
 
-name: Diagnosticar proyecto FilmCraft
+name: Build FilmCraft APK
 
 on:
   workflow_dispatch:
@@ -8,15 +8,15 @@ permissions:
   contents: read
 
 jobs:
-  diagnostico:
-    name: Revisar estructura del ZIP
+  build:
+    name: Compilar FilmCraft para Android
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar herramienta ZIP
+      - name: Instalar ZIP
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
@@ -26,21 +26,33 @@ jobs:
           mkdir -p source
           unzip -q filmcraft-preview-quality-pass.zip -d source
 
-      - name: Mostrar carpetas principales
-        run: |
-          echo "=== CARPETAS ==="
-          find source -maxdepth 4 -type d | sort
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
-      - name: Buscar archivos necesarios
-        run: |
-          echo "=== ARCHIVOS ENCONTRADOS ==="
-          find source -maxdepth 10 -type f \( \
-            -name "Cargo.toml" -o \
-            -name "rust-toolchain.toml" -o \
-            -name "gradlew" -o \
-            -name "gradle.properties" \
-          \) -print | sort
+      - name: Instalar Rust
+        working-directory: source/filmcraft-android-main
+        run: rustup toolchain install
 
-      - name: Finalizar diagnóstico
+      - name: Instalar cargo-ndk y Android NDK
         run: |
-          echo "Diagnóstico terminado."
+          cargo install cargo-ndk --version 4.1.2 --locked
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
+
+      - name: Compilar APK
+        working-directory: source/filmcraft-android-main/apps/filmcraft-android/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pfilmcraft.abis=arm64-v8a \
+            -Pfilmcraft.unsigned=true \
+            --no-daemon
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FilmCraft-APK
+          path: source/filmcraft-android-main/apps/filmcraft-android/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
