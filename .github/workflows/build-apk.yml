@@ -1,5 +1,5 @@
 
-name: Build FilmCraft APK
+name: Diagnosticar proyecto FilmCraft
 
 on:
   workflow_dispatch:
@@ -8,15 +8,15 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Compilar FilmCraft para Android
+  diagnostico:
+    name: Revisar estructura del ZIP
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar herramientas
+      - name: Instalar herramienta ZIP
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
@@ -25,42 +25,22 @@ jobs:
         run: |
           mkdir -p source
           unzip -q filmcraft-preview-quality-pass.zip -d source
-          test -f source/Cargo.toml
-          test -f source/rust-toolchain.toml
-          test -f source/apps/filmcraft-android/android/gradlew
 
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Instalar Rust
-        working-directory: source
+      - name: Mostrar carpetas principales
         run: |
-          rustup toolchain install
-          rustup target add aarch64-linux-android x86_64-linux-android
+          echo "=== CARPETAS ==="
+          find source -maxdepth 4 -type d | sort
 
-      - name: Instalar cargo-ndk
-        run: cargo install cargo-ndk --version 4.1.2 --locked
-
-      - name: Instalar Android NDK
+      - name: Buscar archivos necesarios
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
+          echo "=== ARCHIVOS ENCONTRADOS ==="
+          find source -maxdepth 10 -type f \( \
+            -name "Cargo.toml" -o \
+            -name "rust-toolchain.toml" -o \
+            -name "gradlew" -o \
+            -name "gradle.properties" \
+          \) -print | sort
 
-      - name: Compilar APK
-        working-directory: source/apps/filmcraft-android/android
+      - name: Finalizar diagnóstico
         run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pfilmcraft.abis=arm64-v8a \
-            -Pfilmcraft.unsigned=true \
-            --no-daemon
-
-      - name: Guardar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FilmCraft-APK
-          path: source/apps/filmcraft-android/android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
+          echo "Diagnóstico terminado."
