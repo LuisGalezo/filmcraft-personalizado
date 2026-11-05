@@ -24,7 +24,7 @@ jobs:
       - name: Extraer y verificar proyecto
         run: |
           mkdir -p source
-          unzip -q filmcraft-preview-quality-pass.zip -d source
+          unzip -q filmcraft-custom-fonts-fixed.zip -d source
 
           PROJECT="source/filmcraft-android-main"
 
@@ -41,12 +41,11 @@ jobs:
           java-version: '21'
 
       - name: Configurar Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
+        uses: android-actions/setup-android@v3
 
       - name: Instalar Android NDK
         run: |
+          yes | sdkmanager --licenses
           sdkmanager --install "ndk;29.0.14206865"
 
       - name: Configurar Rust
