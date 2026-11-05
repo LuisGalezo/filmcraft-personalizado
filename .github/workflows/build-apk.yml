@@ -1,4 +1,3 @@
-
 name: Build FilmCraft APK
 
 on:
@@ -45,8 +44,8 @@ jobs:
 
       - name: Configurar Android SDK
         run: |
-          sdkmanager --install "ndk;29.0.14206865"
           yes | sdkmanager --licenses || true
+          sdkmanager --install "ndk;29.0.14206865"
 
       - name: Configurar Rust
         working-directory: source/filmcraft-android-main
@@ -61,12 +60,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease \
             -Pfilmcraft.abis=arm64-v8a \
-            -Pfilmcraft.unsigned=true \
             --no-daemon
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: FilmCraft-APK
-          path: source/filmcraft-android-main/apps/filmcraft-android/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: source/filmcraft-android-main/apps/filmcraft-android/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
