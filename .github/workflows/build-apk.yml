@@ -16,15 +16,23 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar ZIP
+      - name: Instalar herramientas ZIP
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
 
-      - name: Extraer proyecto
+      - name: Extraer y verificar proyecto
         run: |
           mkdir -p source
           unzip -q filmcraft-preview-quality-pass.zip -d source
+
+          PROJECT="source/filmcraft-android-main"
+
+          test -f "$PROJECT/Cargo.toml"
+          test -f "$PROJECT/rust-toolchain.toml"
+          test -f "$PROJECT/apps/filmcraft-android/android/gradlew"
+
+          echo "Proyecto FilmCraft encontrado correctamente."
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -32,14 +40,20 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Instalar Rust
-        working-directory: source/filmcraft-android-main
-        run: rustup toolchain install
+      - name: Instalar Android NDK
+        uses: android-actions/setup-android@v3
 
-      - name: Instalar cargo-ndk y Android NDK
+      - name: Configurar Android SDK
         run: |
+          sdkmanager --install "ndk;29.0.14206865"
+          yes | sdkmanager --licenses || true
+
+      - name: Configurar Rust
+        working-directory: source/filmcraft-android-main
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-linux-android x86_64-linux-android
           cargo install cargo-ndk --version 4.1.2 --locked
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
 
       - name: Compilar APK
         working-directory: source/filmcraft-android-main/apps/filmcraft-android/android
