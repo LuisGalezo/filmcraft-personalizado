@@ -13,26 +13,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar repositorio
+      - name: Configurar trabajo
         uses: actions/checkout@v4
 
-      - name: Instalar herramientas ZIP
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-
-      - name: Extraer y verificar proyecto
+      - name: Descargar y extraer proyecto
         run: |
           mkdir -p source
-          unzip -q filmcraft-custom-fonts-fixed.zip -d source
+          unzip -q filmcraft-package-foundation.zip -d source
+          test -f source/filmcraft-android-main/apps/filmcraft-android/android/gradlew
 
-          PROJECT="source/filmcraft-android-main"
-
-          test -f "$PROJECT/Cargo.toml"
-          test -f "$PROJECT/rust-toolchain.toml"
-          test -f "$PROJECT/apps/filmcraft-android/android/gradlew"
-
-          echo "Proyecto FilmCraft encontrado correctamente."
+      - name: Instalar herramientas ZIP
+        run: sudo apt-get update && sudo apt-get install -y unzip zip
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -42,32 +33,27 @@ jobs:
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v4
-        with:
-          cmdline-tools-version: '15859902'
-          packages: 'platform-tools'
 
       - name: Instalar Android NDK
-        run: |
-          sdkmanager --install "ndk;29.0.14206865"
+        run: sdkmanager "ndk;29.0.14206865"
 
       - name: Configurar Rust
-        working-directory: source/filmcraft-android-main
-        run: |
-          rustup toolchain install
-          rustup target add aarch64-linux-android x86_64-linux-android
-          cargo install cargo-ndk --version 4.1.2 --locked
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Instalar cargo-ndk
+        run: cargo install cargo-ndk --version 4.1.2 --locked
 
       - name: Compilar APK
         working-directory: source/filmcraft-android-main/apps/filmcraft-android/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pfilmcraft.abis=arm64-v8a \
-            --no-daemon
+          ./gradlew assembleRelease -Pfilmcraft.abis=arm64-v8a
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: FilmCraft-APK
-          path: source/filmcraft-android-main/apps/filmcraft-android/android/app/build/outputs/apk/release/app-release.apk
+          path: source/filmcraft-android-main/apps/filmcraft-android/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
