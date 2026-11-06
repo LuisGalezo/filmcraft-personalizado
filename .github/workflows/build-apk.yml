@@ -77,3 +77,4 @@ jobs:
           name: FilmCraft-APK
           path: ${{ steps.extract.outputs.project_dir }}/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+          
